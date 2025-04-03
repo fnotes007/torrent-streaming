@@ -1,60 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Magnet Video Streamer</title>
-    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Torrent Video Streamer</title>
+  <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+      color: #333;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #444;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 15px;
+      font-size: 16px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 15px;
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background-color: #007BFF;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    ul {
+      margin-top: 20px;
+      padding: 0;
+      list-style: none;
+    }
+
+    ul li {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.2s;
+    }
+
+    ul li:hover {
+      background-color: #f0f0f0;
+    }
+
+    video {
+      width: 100%;
+      margin-top: 20px;
+      display: none;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    @media screen and (max-width: 600px) {
+      .container {
+        margin: 20px;
+        padding: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <h2>Enter Magnet Link</h2>
-    <input type="text" id="magnetLink" placeholder="Paste Magnet URL here" style="width: 80%;">
+  <div class="container">
+    <h1>🎥 Torrent Video Streamer</h1>
+    <input type="text" id="magnetLink" placeholder="Paste Magnet URL here..." />
     <button onclick="fetchFiles()">Fetch Files</button>
 
-    <h3>Files in Torrent:</h3>
+    <h3>📂 Files in Torrent:</h3>
     <ul id="fileList"></ul>
 
-    <h3>Video Player:</h3>
-    <video id="videoPlayer" controls style="width: 100%; display: none;"></video>
+    <h3>▶️ Video Player:</h3>
+    <video id="videoPlayer" controls></video>
+  </div>
 
-    <script>
-        var client = new WebTorrent();
+  <script>
+    const client = new WebTorrent();
 
-        function fetchFiles() {
-            var magnetURI = document.getElementById('magnetLink').value;
-            if (!magnetURI) {
-                alert('Please enter a valid magnet URL');
-                return;
-            }
+    function fetchFiles() {
+      const magnetURI = document.getElementById('magnetLink').value.trim();
+      const fileList = document.getElementById('fileList');
+      const videoPlayer = document.getElementById('videoPlayer');
 
-            // Clear previous torrent
-            client.torrents.forEach(torrent => torrent.destroy());
+      fileList.innerHTML = '';
+      videoPlayer.style.display = 'none';
+      videoPlayer.pause();
 
-            client.add(magnetURI, function (torrent) {
-                var fileList = document.getElementById('fileList');
-                fileList.innerHTML = ""; // Clear previous files
+      if (!magnetURI) {
+        alert('Please enter a magnet URL!');
+        return;
+      }
 
-                torrent.files.forEach(function (file, index) {
-                    var listItem = document.createElement('li');
-                    listItem.innerHTML = `<a href="#" onclick="streamFile(${index})">${file.name}</a>`;
-                    fileList.appendChild(listItem);
-                });
-            });
-        }
+      client.torrents.forEach(t => t.destroy());
 
-        function streamFile(fileIndex) {
-            var magnetURI = document.getElementById('magnetLink').value;
-            var videoPlayer = document.getElementById('videoPlayer');
+      client.add(magnetURI, torrent => {
+        torrent.files.forEach((file, index) => {
+          const li = document.createElement('li');
+          li.textContent = file.name;
+          li.onclick = () => streamFile(torrent, index);
+          fileList.appendChild(li);
+        });
+      });
+    }
 
-            client.add(magnetURI, function (torrent) {
-                var file = torrent.files[fileIndex];
+    function streamFile(torrent, fileIndex) {
+      const file = torrent.files[fileIndex];
+      const videoPlayer = document.getElementById('videoPlayer');
 
-                if (file.name.endsWith('.mp4') || file.name.endsWith('.mkv') || file.name.endsWith('.webm')) {
-                    file.renderTo(videoPlayer, { autoplay: true });
-                    videoPlayer.style.display = 'block';
-                } else {
-                    alert('Selected file is not a video');
-                }
-            });
-        }
-    </script>
+      if (/\.(mp4|mkv|webm)$/i.test(file.name)) {
+        file.renderTo(videoPlayer, {
+          autoplay: true
+        });
+        videoPlayer.style.display = 'block';
+      } else {
+        alert('This file is not a supported video format.');
+      }
+    }
+  </script>
 </body>
 </html>
