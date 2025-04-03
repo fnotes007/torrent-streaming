@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Magnet Video Streamer</title>
+    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+</head>
+<body>
+    <h2>Enter Magnet Link</h2>
+    <input type="text" id="magnetLink" placeholder="Paste Magnet URL here" style="width: 80%;">
+    <button onclick="fetchFiles()">Fetch Files</button>
+
+    <h3>Files in Torrent:</h3>
+    <ul id="fileList"></ul>
+
+    <h3>Video Player:</h3>
+    <video id="videoPlayer" controls style="width: 100%; display: none;"></video>
+
+    <script>
+        var client = new WebTorrent();
+
+        function fetchFiles() {
+            var magnetURI = document.getElementById('magnetLink').value;
+            if (!magnetURI) {
+                alert('Please enter a valid magnet URL');
+                return;
+            }
+
+            // Clear previous torrent
+            client.torrents.forEach(torrent => torrent.destroy());
+
+            client.add(magnetURI, function (torrent) {
+                var fileList = document.getElementById('fileList');
+                fileList.innerHTML = ""; // Clear previous files
+
+                torrent.files.forEach(function (file, index) {
+                    var listItem = document.createElement('li');
+                    listItem.innerHTML = `<a href="#" onclick="streamFile(${index})">${file.name}</a>`;
+                    fileList.appendChild(listItem);
+                });
+            });
+        }
+
+        function streamFile(fileIndex) {
+            var magnetURI = document.getElementById('magnetLink').value;
+            var videoPlayer = document.getElementById('videoPlayer');
+
+            client.add(magnetURI, function (torrent) {
+                var file = torrent.files[fileIndex];
+
+                if (file.name.endsWith('.mp4') || file.name.endsWith('.mkv') || file.name.endsWith('.webm')) {
+                    file.renderTo(videoPlayer, { autoplay: true });
+                    videoPlayer.style.display = 'block';
+                } else {
+                    alert('Selected file is not a video');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
