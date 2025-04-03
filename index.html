@@ -126,15 +126,29 @@
         return;
       }
 
-      client.torrents.forEach(t => t.destroy());
+      console.log('Fetching torrent from magnet link:', magnetURI);
+
+      client.torrents.forEach(t => t.destroy());  // Clear existing torrents
 
       client.add(magnetURI, torrent => {
+        console.log('Torrent added:', torrent);
+        
+        if (torrent.files.length === 0) {
+          alert('No files found in the torrent!');
+          return;
+        }
+
         torrent.files.forEach((file, index) => {
           const li = document.createElement('li');
           li.textContent = file.name;
           li.onclick = () => downloadFile(file);
           fileList.appendChild(li);
         });
+      });
+
+      client.on('error', (err) => {
+        console.error('Torrent Error:', err);
+        alert('Error fetching torrent. Please check the magnet URL.');
       });
     }
 
@@ -150,6 +164,8 @@
         return;
       }
 
+      console.log('Uploading .torrent file:', file.name);
+
       fileList.innerHTML = '';
       videoPlayer.style.display = 'none';
       videoPlayer.pause();
@@ -157,7 +173,16 @@
       const reader = new FileReader();
       reader.onload = function(event) {
         const torrentBuffer = event.target.result;
+
+        console.log('Fetching torrent from uploaded file');
         client.add(torrentBuffer, torrent => {
+          console.log('Torrent added from file:', torrent);
+          
+          if (torrent.files.length === 0) {
+            alert('No files found in the torrent!');
+            return;
+          }
+
           torrent.files.forEach((file, index) => {
             const li = document.createElement('li');
             li.textContent = file.name;
@@ -166,6 +191,12 @@
           });
         });
       };
+
+      reader.onerror = function(error) {
+        console.error('Error reading file:', error);
+        alert('Error reading .torrent file.');
+      };
+
       reader.readAsArrayBuffer(file);
     }
 
