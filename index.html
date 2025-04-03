@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Torrent File Downloader</title>
+  <title>Web-based Torrent Client</title>
   <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
   <style>
     body {
@@ -28,7 +28,7 @@
       color: #444;
     }
 
-    input[type="text"] {
+    input[type="text"], input[type="file"] {
       width: 100%;
       padding: 12px 15px;
       font-size: 16px;
@@ -73,6 +73,14 @@
       background-color: #f0f0f0;
     }
 
+    video {
+      width: 100%;
+      margin-top: 20px;
+      display: none;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
     @media screen and (max-width: 600px) {
       .container {
         margin: 20px;
@@ -83,35 +91,44 @@
 </head>
 <body>
   <div class="container">
-    <h1>🎥 Torrent File Downloader</h1>
+    <h1>🎥 Web Torrent Client</h1>
+
+    <h3>📂 Add Magnet URL</h3>
     <input type="text" id="magnetLink" placeholder="Paste Magnet URL here..." />
-    <button onclick="fetchFiles()">Fetch Files</button>
+    <button onclick="fetchMagnet()">Fetch Torrent</button>
+
+    <h3>📂 Or Upload a .torrent File</h3>
+    <input type="file" id="torrentFile" />
+    <button onclick="fetchTorrentFile()">Upload .torrent File</button>
 
     <h3>📂 Files in Torrent:</h3>
     <ul id="fileList"></ul>
+
+    <h3>▶️ Video Player:</h3>
+    <video id="videoPlayer" controls></video>
   </div>
 
   <script>
     const client = new WebTorrent();
 
-    function fetchFiles() {
+    // Fetch files from magnet URL
+    function fetchMagnet() {
       const magnetURI = document.getElementById('magnetLink').value.trim();
       const fileList = document.getElementById('fileList');
+      const videoPlayer = document.getElementById('videoPlayer');
 
       fileList.innerHTML = '';
+      videoPlayer.style.display = 'none';
+      videoPlayer.pause();
 
       if (!magnetURI) {
         alert('Please enter a magnet URL!');
         return;
       }
 
-      // Clear existing torrents and start a new one
       client.torrents.forEach(t => t.destroy());
-      console.log('Starting torrent download...');
 
-      client.add(magnetURI, { announce: ['wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xyz'] }, torrent => {
-        console.log('Torrent added:', torrent.infoHash);
-
+      client.add(magnetURI, torrent => {
         torrent.files.forEach((file, index) => {
           const li = document.createElement('li');
           li.textContent = file.name;
@@ -119,13 +136,40 @@
           fileList.appendChild(li);
         });
       });
-
-      client.on('error', (err) => {
-        console.error('Error with WebTorrent:', err);
-        alert('Failed to fetch torrent. Check the magnet link or network connection.');
-      });
     }
 
+    // Fetch files from uploaded .torrent file
+    function fetchTorrentFile() {
+      const fileInput = document.getElementById('torrentFile');
+      const file = fileInput.files[0];
+      const fileList = document.getElementById('fileList');
+      const videoPlayer = document.getElementById('videoPlayer');
+
+      if (!file) {
+        alert('Please upload a .torrent file!');
+        return;
+      }
+
+      fileList.innerHTML = '';
+      videoPlayer.style.display = 'none';
+      videoPlayer.pause();
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const torrentBuffer = event.target.result;
+        client.add(torrentBuffer, torrent => {
+          torrent.files.forEach((file, index) => {
+            const li = document.createElement('li');
+            li.textContent = file.name;
+            li.onclick = () => downloadFile(file);
+            fileList.appendChild(li);
+          });
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Download file from torrent
     function downloadFile(file) {
       console.log('Downloading file:', file.name);
 
@@ -139,7 +183,7 @@
         // Trigger the download
         const a = document.createElement('a');
         a.href = url;
-        a.download = file.name; // Set the file name
+        a.download = file.name;
         a.click(); // Trigger download
       });
     }
