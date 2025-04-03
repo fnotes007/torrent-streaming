@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Torrent Video Streamer</title>
+  <title>Torrent File Downloader</title>
   <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
   <style>
     body {
@@ -73,14 +73,6 @@
       background-color: #f0f0f0;
     }
 
-    video {
-      width: 100%;
-      margin-top: 20px;
-      display: none;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-
     @media screen and (max-width: 600px) {
       .container {
         margin: 20px;
@@ -91,15 +83,12 @@
 </head>
 <body>
   <div class="container">
-    <h1>🎥 Torrent Video Streamer</h1>
+    <h1>🎥 Torrent File Downloader</h1>
     <input type="text" id="magnetLink" placeholder="Paste Magnet URL here..." />
     <button onclick="fetchFiles()">Fetch Files</button>
 
     <h3>📂 Files in Torrent:</h3>
     <ul id="fileList"></ul>
-
-    <h3>▶️ Video Player:</h3>
-    <video id="videoPlayer" controls></video>
   </div>
 
   <script>
@@ -108,11 +97,8 @@
     function fetchFiles() {
       const magnetURI = document.getElementById('magnetLink').value.trim();
       const fileList = document.getElementById('fileList');
-      const videoPlayer = document.getElementById('videoPlayer');
 
       fileList.innerHTML = '';
-      videoPlayer.style.display = 'none';
-      videoPlayer.pause();
 
       if (!magnetURI) {
         alert('Please enter a magnet URL!');
@@ -129,7 +115,7 @@
         torrent.files.forEach((file, index) => {
           const li = document.createElement('li');
           li.textContent = file.name;
-          li.onclick = () => streamFile(torrent, index);
+          li.onclick = () => downloadFile(file);
           fileList.appendChild(li);
         });
       });
@@ -140,20 +126,22 @@
       });
     }
 
-    function streamFile(torrent, fileIndex) {
-      const file = torrent.files[fileIndex];
-      const videoPlayer = document.getElementById('videoPlayer');
-      console.log('Selected file:', file.name);
+    function downloadFile(file) {
+      console.log('Downloading file:', file.name);
 
-      if (/\.(mp4|mkv|webm)$/i.test(file.name)) {
-        console.log('Streaming video:', file.name);
-        file.renderTo(videoPlayer, {
-          autoplay: true
-        });
-        videoPlayer.style.display = 'block';
-      } else {
-        alert('This file is not a supported video format.');
-      }
+      file.getBlobURL((err, url) => {
+        if (err) {
+          console.error('Error getting Blob URL:', err);
+          alert('Failed to download the file.');
+          return;
+        }
+
+        // Trigger the download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name; // Set the file name
+        a.click(); // Trigger download
+      });
     }
   </script>
 </body>
