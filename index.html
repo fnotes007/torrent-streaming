@@ -102,63 +102,59 @@
     <video id="videoPlayer" controls></video>
   </div>
 
-<script>
-  var client = new WebTorrent();
+  <script>
+    const client = new WebTorrent();
 
-  function fetchFiles() {
-    const magnetURI = document.getElementById("magnetLink").value.trim();
-    const fileList = document.getElementById("fileList");
-    const videoPlayer = document.getElementById("videoPlayer");
+    function fetchFiles() {
+      const magnetURI = document.getElementById('magnetLink').value.trim();
+      const fileList = document.getElementById('fileList');
+      const videoPlayer = document.getElementById('videoPlayer');
 
-    fileList.innerHTML = "";
-    videoPlayer.style.display = "none";
-    videoPlayer.pause();
+      fileList.innerHTML = '';
+      videoPlayer.style.display = 'none';
+      videoPlayer.pause();
 
-    console.log("Fetching files from:", magnetURI); // Debugging
+      if (!magnetURI) {
+        alert('Please enter a magnet URL!');
+        return;
+      }
 
-    if (!magnetURI || !magnetURI.startsWith("magnet:?xt=urn:btih:")) {
-      alert("Invalid magnet link!");
-      return;
-    }
+      // Clear existing torrents and start a new one
+      client.torrents.forEach(t => t.destroy());
+      console.log('Starting torrent download...');
 
-    try {
-      client.add(magnetURI, function (torrent) {
-        console.log("Torrent metadata loaded:", torrent);
+      client.add(magnetURI, { announce: ['wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xyz'] }, torrent => {
+        console.log('Torrent added:', torrent.infoHash);
 
-        torrent.files.forEach((file) => {
-          console.log("File found:", file.name);
-
-          const li = document.createElement("li");
+        torrent.files.forEach((file, index) => {
+          const li = document.createElement('li');
           li.textContent = file.name;
-          li.onclick = () => streamFile(torrent, file);
+          li.onclick = () => streamFile(torrent, index);
           fileList.appendChild(li);
         });
-
-        if (torrent.files.length === 0) {
-          alert("No video files found in torrent.");
-        }
       });
-    } catch (error) {
-      console.error("Error adding torrent:", error);
-      alert("Failed to fetch files. Check console for details.");
+
+      client.on('error', (err) => {
+        console.error('Error with WebTorrent:', err);
+        alert('Failed to fetch torrent. Check the magnet link or network connection.');
+      });
     }
-  }
 
-  function streamFile(torrent, file) {
-    const videoPlayer = document.getElementById("videoPlayer");
+    function streamFile(torrent, fileIndex) {
+      const file = torrent.files[fileIndex];
+      const videoPlayer = document.getElementById('videoPlayer');
+      console.log('Selected file:', file.name);
 
-    if (
-      file.name.endsWith(".mp4") ||
-      file.name.endsWith(".mkv") ||
-      file.name.endsWith(".webm")
-    ) {
-      file.renderTo(videoPlayer, { autoplay: true });
-      videoPlayer.style.display = "block";
-    } else {
-      alert("Selected file is not a video format.");
+      if (/\.(mp4|mkv|webm)$/i.test(file.name)) {
+        console.log('Streaming video:', file.name);
+        file.renderTo(videoPlayer, {
+          autoplay: true
+        });
+        videoPlayer.style.display = 'block';
+      } else {
+        alert('This file is not a supported video format.');
+      }
     }
-  }
-</script>
-
+  </script>
 </body>
 </html>
